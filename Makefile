@@ -1,9 +1,10 @@
 TARGET_EXEC ?= example.elf
 
-AS := riscv-none-embed-gcc
-CC := riscv-none-embed-gcc
-CXX := riscv-none-embed-g++
-SIZE := riscv-none-embed-size
+TRIPLE := riscv-none-elf
+AS := $(TRIPLE)-gcc
+CC := $(TRIPLE)-gcc
+CXX := $(TRIPLE)-g++
+SIZE := $(TRIPLE)-size
 
 BUILD_DIR ?= ./build
 SRC_DIRS ?= ./src ./vendor/Core ./vendor/Debug ./vendor/Peripheral ./vendor/Startup ./vendor/User
@@ -15,10 +16,11 @@ DEPS := $(OBJS:.o=.d)
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-FLAGS ?= -march=rv32ec -mabi=ilp32e -Os -ffunction-sections -fdata-sections -Wall -g
+FLAGS ?= -march=rv32ec_zicsr -mabi=ilp32e -Os -ffunction-sections -fdata-sections -Wall -g -mcmodel=medany -mpreferred-stack-boundary=2 --specs=nano.specs 
 ASFLAGS ?= $(FLAGS) -x assembler $(INC_FLAGS) -MMD -MP
 CPPFLAGS ?=  $(FLAGS) $(INC_FLAGS) -std=gnu99 -MMD -MP
-LDFLAGS ?= $(FLAGS) -T ./vendor/Ld/Link.ld -nostartfiles -Xlinker --gc-sections -Wl,-Map,"$(BUILD_DIR)/$(TARGET_EXEC:.%=.map)" --specs=nano.specs --specs=nosys.specs
+# Ugly hack, use non '_zicsr' march in the link command to select correct libgcc version
+LDFLAGS ?= $(FLAGS) -march=rv32ec -T ./vendor/Ld/Link.ld -nostartfiles -Xlinker --gc-sections -Wl,-Map,"$(BUILD_DIR)/$(TARGET_EXEC:.%=.map)"
 
 all: $(BUILD_DIR)/$(TARGET_EXEC)
 	$(SIZE) $<
