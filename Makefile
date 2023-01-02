@@ -4,6 +4,7 @@ TRIPLE := riscv-none-elf
 AS := $(TRIPLE)-gcc
 CC := $(TRIPLE)-gcc
 CXX := $(TRIPLE)-g++
+DUMP := $(TRIPLE)-objdump
 SIZE := $(TRIPLE)-size
 
 BUILD_DIR ?= ./build
@@ -16,36 +17,41 @@ DEPS := $(OBJS:.o=.d)
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-FLAGS ?= -march=rv32ec_zicsr -mabi=ilp32e -Os -ffunction-sections -fdata-sections -Wall -g -mcmodel=medany -mpreferred-stack-boundary=2 --specs=nano.specs 
+FLAGS ?= -march=rv32ec_zicsr -mabi=ilp32e -Os -ffunction-sections -fdata-sections -Wall  -g
 ASFLAGS ?= $(FLAGS) -x assembler $(INC_FLAGS) -MMD -MP
-CPPFLAGS ?=  $(FLAGS) $(INC_FLAGS) -std=gnu99 -MMD -MP
+CFLAGS ?=  $(FLAGS) $(INC_FLAGS) -std=gnu99 -MMD -MP
+CXXFLAGS ?=  $(FLAGS) $(INC_FLAGS) -std=gnu99 -MMD -MP
 # Ugly hack, use non '_zicsr' march in the link command to select correct libgcc version
-LDFLAGS ?= $(FLAGS) -march=rv32ec -T ./vendor/Ld/Link.ld -nostartfiles -Xlinker --gc-sections -Wl,-Map,"$(BUILD_DIR)/$(TARGET_EXEC:.%=.map)"
+LDFLAGS ?= $(FLAGS) -march=rv32ec -T ./vendor/Ld/Link.ld -nostartfiles -Xlinker --gc-sections -Wl,-Map,"$(BUILD_DIR)/$(TARGET_EXEC:.elf=.map)" --specs=nano.specs 
 
-all: $(BUILD_DIR)/$(TARGET_EXEC)
+all: $(BUILD_DIR)/$(TARGET_EXEC) $(BUILD_DIR)/$(TARGET_EXEC:.elf=.lst)
 	$(SIZE) $<
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
-	@echo "LN $@"
-	@$(CC) $(OBJS) -o $@ $(LDFLAGS)
+	@echo "LINK $@"
+	$(CC) $(LDFLAGS) -o $@ $(OBJS)
+
+%.lst: %.elf
+	@echo "DISASM $@"
+	$(DUMP) -DS $< > $@ 
 
 # assembly
 $(BUILD_DIR)/%.S.o: %.S
 	@echo "AS $<"
 	@$(MKDIR_P) $(dir $@)
-	@$(CC) $(ASFLAGS) -c $< -o $@
+	@$(AS) $(ASFLAGS) -c $< -o $@
 
 # c source
 $(BUILD_DIR)/%.c.o: %.c
 	@echo "CC $<"
 	@$(MKDIR_P) $(dir $@)
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	@echo "CXX $<"
 	@$(MKDIR_P) $(dir $@)
-	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 
 .PHONY: clean
