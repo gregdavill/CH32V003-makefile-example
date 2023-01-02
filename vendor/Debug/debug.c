@@ -106,48 +106,20 @@ void USART_Printf_Init(uint32_t baudrate)
     USART_Cmd(USART1, ENABLE);
 }
 
+
 /*********************************************************************
- * @fn      _write
+ * @fn      _putchar
  *
  * @brief   Support Printf Function
  *
- * @param   *buf - UART send Data.
- *          size - Data length.
+ * @param   data - UART send Data.
  *
- * @return  size - Data length
+ * @return  none
  */
 __attribute__((used)) 
-int _write(int fd, char *buf, int size)
+void _putchar(char data)
 {
-    int i;
-
-    for(i = 0; i < size; i++){
-        while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
-        USART_SendData(USART1, *buf++);
-    }
-
-    return size;
+    while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
+    USART_SendData(USART1, data);
 }
-
-/*********************************************************************
- * @fn      _sbrk
- *
- * @brief   Change the spatial position of data segment.
- *
- * @return  size: Data length
- */
-void *_sbrk(ptrdiff_t incr)
-{
-    extern char _end[];
-    extern char _heap_end[];
-    static char *curbrk = _end;
-
-    if ((curbrk + incr < _end) || (curbrk + incr > _heap_end))
-    return NULL - 1;
-
-    curbrk += incr;
-    return curbrk - incr;
-}
-
-
 

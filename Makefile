@@ -8,16 +8,20 @@ DUMP := $(TRIPLE)-objdump
 SIZE := $(TRIPLE)-size
 
 BUILD_DIR ?= ./build
-SRC_DIRS ?= ./src ./vendor/Core ./vendor/Debug ./vendor/Peripheral ./vendor/Startup ./vendor/User
+SRC_DIRS ?= ./src \
+			./vendor/Core ./vendor/Debug ./vendor/Peripheral ./vendor/Startup ./vendor/User 
 
 SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c -or -name *.S)
+SRCS += ./libs/printf/printf.c
+
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 DEPS := $(OBJS:.o=.d)
 
-INC_DIRS := $(shell find $(SRC_DIRS) -type d)
+INC_DIRS := $(shell find $(SRC_DIRS) -type d) libs/printf
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-FLAGS ?= -march=rv32ec_zicsr -mabi=ilp32e -Os -ffunction-sections -fdata-sections -Wall  -g
+FLAGS ?= -march=rv32ec_zicsr -mabi=ilp32e -Os -ffunction-sections -fdata-sections -Wall  -g 
+FLAGS += -DPRINTF_DISABLE_SUPPORT_FLOAT -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL -DPRINTF_DISABLE_SUPPORT_LONG_LONG
 ASFLAGS ?= $(FLAGS) -x assembler $(INC_FLAGS) -MMD -MP
 CFLAGS ?=  $(FLAGS) $(INC_FLAGS) -std=gnu99 -MMD -MP
 CXXFLAGS ?=  $(FLAGS) $(INC_FLAGS) -std=gnu99 -MMD -MP
@@ -29,11 +33,11 @@ all: $(BUILD_DIR)/$(TARGET_EXEC) $(BUILD_DIR)/$(TARGET_EXEC:.elf=.lst)
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	@echo "LINK $@"
-	$(CC) $(LDFLAGS) -o $@ $(OBJS)
+	@$(CC) $(LDFLAGS) -o $@ $(OBJS)
 
 %.lst: %.elf
 	@echo "DISASM $@"
-	$(DUMP) -DS $< > $@ 
+	@$(DUMP) -DS $< > $@ 
 
 # assembly
 $(BUILD_DIR)/%.S.o: %.S
@@ -45,7 +49,7 @@ $(BUILD_DIR)/%.S.o: %.S
 $(BUILD_DIR)/%.c.o: %.c
 	@echo "CC $<"
 	@$(MKDIR_P) $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp

@@ -16,7 +16,6 @@
 #endif
 
 #include <ch32v00x.h>
-#include <stdio.h>
 
 /* UART Printf Definition */
 #define DEBUG_UART1    1
