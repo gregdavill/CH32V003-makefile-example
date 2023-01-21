@@ -58,6 +58,9 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 
+load: build/example.elf
+	openocd -f vendor/wch-riscv.cfg -c 'init; halt; program $<; reset; wlink_reset_resume; exit;'
+
 .PHONY: clean
 
 clean:
